@@ -4,21 +4,33 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-public final class IncidentTicket {
+/**
+ * INTENTION: A ticket should be an immutable record-like object.
+ *
+ * CURRENT STATE (BROKEN ON PURPOSE):
+ * - mutable fields
+ * - multiple constructors
+ * - public setters
+ * - tags list can be modified from outside
+ * - validation is scattered elsewhere
+ *
+ * TODO (student): refactor to immutable + Builder.
+ */
+public class IncidentTicket {
 
     private final String id;
     private final String reporterEmail;
     private final String title;
 
     private final String description;
-    private final String priority;
-    private final List<String> tags;
+    private final String priority;       // LOW, MEDIUM, HIGH, CRITICAL
+    private final List<String> tags;     // mutable leak
     private final String assigneeEmail;
     private final boolean customerVisible;
-    private final Integer slaMinutes;
-    private final String source;
+    private final Integer slaMinutes;    // optional
+    private final String source;         // e.g. "CLI", "WEBHOOK", "EMAIL"
 
-    private IncidentTicket(Builder builder) {
+     private IncidentTicket(Builder builder) {
         this.id = builder.id;
         this.reporterEmail = builder.reporterEmail;
         this.title = builder.title;
@@ -32,20 +44,19 @@ public final class IncidentTicket {
         // defensive copy + unmodifiable
         this.tags = Collections.unmodifiableList(new ArrayList<>(builder.tags));
     }
-
-    // Getters (safe)
+    
+    // Getters
     public String getId() { return id; }
     public String getReporterEmail() { return reporterEmail; }
     public String getTitle() { return title; }
     public String getDescription() { return description; }
     public String getPriority() { return priority; }
-    public List<String> getTags() { return tags; }
+    public List<String> getTags() { return tags; } // BROKEN: leaks internal list
     public String getAssigneeEmail() { return assigneeEmail; }
     public boolean isCustomerVisible() { return customerVisible; }
     public Integer getSlaMinutes() { return slaMinutes; }
     public String getSource() { return source; }
 
-    // toBuilder (for updates)
     public Builder toBuilder() {
         return new Builder(id, reporterEmail, title)
                 .description(description)
@@ -56,8 +67,6 @@ public final class IncidentTicket {
                 .slaMinutes(slaMinutes)
                 .source(source);
     }
-
-    // Builder
     public static class Builder {
         private String id;
         private String reporterEmail;
@@ -119,14 +128,17 @@ public final class IncidentTicket {
             return this;
         }
 
-        public IncidentTicket build() {
+         public IncidentTicket build() {
             // centralized validation
             Validation.requireTicketId(id);
             Validation.requireEmail(reporterEmail, "reporterEmail");
+
             Validation.requireNonBlank(title, "title");
             Validation.requireMaxLen(title, 80, "title");
 
-            Validation.requireEmail(assigneeEmail, "assigneeEmail");
+            if (assigneeEmail != null) {
+                Validation.requireEmail(assigneeEmail, "assigneeEmail");
+            }
 
             Validation.requireOneOf(priority, "priority",
                     "LOW", "MEDIUM", "HIGH", "CRITICAL");
