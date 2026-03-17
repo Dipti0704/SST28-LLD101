@@ -17,6 +17,7 @@ import java.util.Random;
  *   2) Use MarkerStyleFactory.get(shape,color,size,filled) here
  */
 public class MapDataSource {
+    private final MarkerStyleFactory factory = new MarkerStyleFactory();
 
     private static final String[] SHAPES = {"PIN", "CIRCLE", "SQUARE"};
     private static final String[] COLORS = {"RED", "BLUE", "GREEN", "ORANGE"};
@@ -37,8 +38,13 @@ public class MapDataSource {
             int size = SIZES[rnd.nextInt(SIZES.length)];
             boolean filled = rnd.nextBoolean();
 
-            out.add(new MapMarker(lat, lng, label, shape, color, size, filled));
+            MarkerStyle style = factory.get(shape, color, size, filled);
+
+            out.add(new MapMarker(lat, lng, label, style));
+
+
         }
+        System.out.println("Unique styles created: " + factory.cacheSize());
         return out;
     }
 }
